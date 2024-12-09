@@ -1,18 +1,4 @@
-#ifndef TEXTFILE_H
-#define TEXTFILE_H
-
-#include <stdio.h>
-#include <stdlib.h>
-#include "line.h"
-
-#define DEFAULT_NUMBER_OF_LINES 8
-
-typedef struct
-{
-  size_t count;
-  size_t max_count;
-  Line **lines;
-} Textfile;
+#include "textfile.h"
 
 void allocateTextfile(Textfile **textfile)
 {
@@ -58,5 +44,3 @@ void printTextfile(Textfile *textfile)
     printf("%s\r\n", line->data);
   }
 }
-
-#endif

@@ -1,19 +1,11 @@
-#ifndef CURRENTFILEEDITOR_H
-#define CURRENTFILEEDITOR_H
+
+#include "currentFileEditor.h"
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <curses.h>
 #include <string.h>
-#include "textfile.h"
-#include "cursor.h"
-#include "scroll.h"
-
-#define KEY_ALT 18
-#define KEY_ESC 27
-#ifndef CTRL
-#define CTRL(c) ((c) & 037)
-#endif
+#include <curses.h>
 
 void displayPageName(const char *msg, TextScroll *scroll)
 {
@@ -297,5 +289,3 @@ void performOperation(int ch, Textfile *file, Cursor *pointer, TextScroll *scrol
 
   resetScreen(file, pointer, scroll, type);
 }
-
-#endif

@@ -1,13 +1,18 @@
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <fcntl.h>  // For open()
+#include <stdlib.h> // For mkstemp()
+#include <string.h> // For strlen()
+#include <unistd.h> // For write()
 #include <stdint.h>
-#include <string.h>
+#include <sys/types.h> // For pid_t
+#include <sys/wait.h>  // For wait
+
 #include <curses.h>
-#include "textfile.h"
-#include "cursor.h"
-#include "scroll.h"
+
 #include "currentFileEditor.h"
+
+#define _POSIX_C_SOURCE 200809L
 
 // Function to append a string to a dynamically growing string
 void appendToString(char **str, size_t *length, size_t *capacity, const char *toAppend, size_t toAppendLength)
@@ -33,33 +38,89 @@ void appendToString(char **str, size_t *length, size_t *capacity, const char *to
 
 void sendMail(Textfile *mail, Textfile *subject, Textfile *recipent)
 {
-  char *command = (char *)malloc(sizeof(char) * DEFAULT_CHARS_PER_LINE);
+  char tmp_name[] = "mailTemp_XXXXXX";
+  int fd = mkstemp(tmp_name); // Create a temporary file for the mail
+  if (fd == -1)
+  {
+    perror("mkstemp failed");
+    perror("Mail not Sent");
+    return;
+  }
+  // Now, unlink the file after creation so now the file is invisible by filesystem and only accessable by file descriptor and will delete itself
+  if (unlink(tmp_name) == -1)
+  {
+    perror("unlink failed");
+    perror("Mail not Sent");
+    close(fd);
+    return;
+  }
+
+  char *mailString = malloc(sizeof(char) * DEFAULT_CHARS_PER_LINE);
   size_t length = 0;
   size_t capacity = DEFAULT_CHARS_PER_LINE;
-  const char *txt = "echo 'Hello Karn,\n this is a test email!' | mail -s 'Test Email by term' karankavatra@gmail.com";
-
-  appendToString(&command, &length, &capacity, "echo \'", strlen("echo \'"));
 
   for (size_t i = 0; i < mail->count; i++)
   {
-    appendToString(&command, &length, &capacity, mail->lines[i]->data, mail->lines[i]->length);
+    appendToString(&mailString, &length, &capacity, mail->lines[i]->data, mail->lines[i]->length);
   }
-  appendToString(&command, &length, &capacity, "\' | mail -s \'", strlen("\' | mail -s \'"));
 
+  // Write data to the file using the file descriptor
+  ssize_t bytes_written = write(fd, mailString, strlen(mailString));
+  if (bytes_written == -1)
+  {
+    perror("write failed");
+    perror("Mail not Sent");
+    close(fd);
+    free(mailString);
+    return;
+  }
+
+  fsync(fd);              // Ensures all written data is flushed to disk.
+  lseek(fd, 0, SEEK_SET); // Resets the file offset to the beginning for reading.
+
+  char *subjectString = malloc(sizeof(char) * DEFAULT_CHARS_PER_LINE);
+  length = 0;
+  capacity = DEFAULT_CHARS_PER_LINE;
   for (size_t i = 0; i < subject->count; i++)
   {
-    appendToString(&command, &length, &capacity, subject->lines[i]->data, subject->lines[i]->length);
+    appendToString(&subjectString, &length, &capacity, subject->lines[i]->data, subject->lines[i]->length);
   }
-  appendToString(&command, &length, &capacity, "\' ", strlen("\' "));
 
+  char *recipientString = malloc(sizeof(char) * DEFAULT_CHARS_PER_LINE);
+  length = 0;
+  capacity = DEFAULT_CHARS_PER_LINE;
   for (size_t i = 0; i < recipent->count; i++)
   {
-    appendToString(&command, &length, &capacity, recipent->lines[i]->data, recipent->lines[i]->length);
-    appendToString(&command, &length, &capacity, " ", strlen(" "));
+    appendToString(&recipientString, &length, &capacity, recipent->lines[i]->data, recipent->lines[i]->length);
   }
-  system(command);
-  // printf("%s", command);
-  free(command);
+
+  pid_t pid;
+  if ((pid = fork()) == 0)
+  {
+    dup2(fd, 0); // make that file the new stdin (this duplicates the "|" part of the cmd line
+    char *argv[] = {
+        "/usr/bin/mail",
+        "-s",
+        subjectString,   // reduced to a single char array, not your 'Textfile'
+        recipientString, // reduced to a single char array, not your 'Textfile'
+        NULL};
+    execv(argv[0], argv);
+  }
+  else if (pid > 0)
+  {
+    int status;
+    wait(&status);
+  }
+  else
+  {
+    perror("Mail not Sent");
+  }
+  close(fd);
+
+  // Free memory
+  free(mailString);
+  free(subjectString);
+  free(recipientString);
 }
 
 int main()
@@ -172,18 +233,16 @@ int main()
   }
 
   endwin();
-  // printf("%lu %lu\r\n", scroll.start_line, scroll.start_col);
-  // printf("%lu %lu\r\n", scroll.max_lines, scroll.max_width);
-  // printf("%lu %lu\r\n", pointer.line_count, pointer.character_count);
+
   printf("Message:\r\n");
   printTextfile(mail);
   printf("\r\nSubject:\r\n");
   printTextfile(subject);
   printf("\r\nRecipients:\r\n");
   printTextfile(recipient);
+
   sendMail(mail, subject, recipient);
-  // const char *command = "echo 'Hello Karn,\n this is a test email!' | mail -s 'Test Email by term' karankavatra@gmail.com";
-  // system(command);
+
   deallocateTextfile(mail);
   deallocateTextfile(subject);
   deallocateTextfile(recipient);

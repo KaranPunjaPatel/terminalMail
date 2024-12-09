@@ -1,15 +1,5 @@
-#ifndef SCROLL_H
-#define SCROLL_H
 
-#include "cursor.h"
-
-typedef struct
-{
-  size_t start_line; // Line to start displaying from
-  size_t start_col;  // Column to start displaying from (horizontal scroll)
-  size_t max_lines;  // Number of lines the terminal can display
-  size_t max_width;  // Number of characters per line the terminal can display
-} TextScroll;
+#include "scroll.h"
 
 void checkPointerScroll(Cursor *pointer, TextScroll *scroll)
 {
@@ -25,6 +15,3 @@ void checkPointerScroll(Cursor *pointer, TextScroll *scroll)
   if (pointer->character_count < scroll->start_col || pointer->character_count >= (scroll->start_col + scroll->max_width))
     scroll->start_col = pointer->character_count - scroll->max_width + 1;
 }
-
-
-#endif

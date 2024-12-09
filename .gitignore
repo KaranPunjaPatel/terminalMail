@@ -1,3 +1,4 @@
 .vscode/
 example.c
 test.c
+bin/

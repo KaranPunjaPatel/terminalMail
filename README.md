@@ -62,7 +62,7 @@ Still doesn't work then use some online help
 Run this command to run the program
 
 ```
-make
+make build
 ```
 
 Then you will be in starting page where you can type the message you want to share then press Esc key to go to next page which will be subject page and type the subject for the mail then press Esc key again and you will be at recipient page type the email of recipient for the mail and for multiple recipients just add the email and press enter and enter another email. After that press Ctrl+r keys to send mail

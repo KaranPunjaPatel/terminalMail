@@ -1,17 +1,6 @@
-#ifndef LINE_H
-#define LINE_H
+#include "line.h"
 
-#include <stdlib.h>
-#include <stdio.h>
 
-#define DEFAULT_CHARS_PER_LINE 128
-
-typedef struct
-{
-  size_t length;
-  size_t capacity;
-  char *data;
-} Line;
 
 void allocateLine(Line **line)
 {
@@ -43,5 +32,3 @@ void increaseLineSize(Line *line)
   line->capacity <<= 1;
   line->data = (char *)realloc(line->data, sizeof(char) * line->capacity);
 }
-
-#endif
